@@ -1,0 +1,10 @@
+# making sure that bash scripts (*.sh) have ab end of line lf not crlf.
+# crlf makes your bash script crash if you copy your shell script into
+# a docker image while building a linux container on Windows
+
+*.sh text eol=lf
+id_rsa eol=lf
+id_rsa.pub eol=lf
+.env eol=lf
+.env-template eol=lf
+.env-test eol=lf
