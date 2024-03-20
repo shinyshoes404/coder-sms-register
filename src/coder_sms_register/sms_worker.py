@@ -43,18 +43,22 @@ class MsgManager:
         phone_num_bytes = self.phone_num.encode('utf-8') # converting phone number to array of bytes
         salt = bcrypt.gensalt() # generating the salt
         phone_num_hash = bcrypt.hashpw(phone_num_bytes, salt).decode("utf-8") # Hashing the phone number
-        
+        self.phone_num_hash = phone_num_hash
+
         return phone_num_hash
 
     def verify_pass_phrase(self) -> bool:
         """A method to check for a valid pass phrase in the sms message"""
-
-        if self.msg_body.replace(" ", "").lower().rstrip(".").rstrip("!").rstrip("?") == os.environ["CODER_REG_PASS"].replace(" ", "").lower():
+        print("in verify")
+        if self.msg_body.replace(" ", "").lower().rstrip(".").rstrip("!").rstrip("?") == os.environ.get("CODER_REG_PASS").replace(" ", "").lower():
             self.pass_verified = True
+            print("set pass verified")
             logger.info("pass phrase matches")            
             return True
                 
         self.pass_verified = False
+        print(f"verify failed {self.msg_body}")
+        print(f"env {os.environ.get('CODER_REG_PASS')}")
         return False
     
     def check_for_matching_user(self) -> str:
@@ -88,7 +92,7 @@ class MsgManager:
                     
         return None
 
-    def create_user(self) -> bool:
+    def create_user(self) -> dict[str]:
         """A method to create a new Coder user and add them to the database."""
 
         creds = Coder.gen_credentials()
@@ -106,14 +110,14 @@ class MsgManager:
                 else:
                     logger.error(f"failed to delete Coder user {creds['username']}")
                 
-                return False # created Coder user, but failed to store them in the database
+                return None # created Coder user, but failed to store them in the database
             
-            return True # successfully created Coder user and stored them in database
+            return creds # successfully created Coder user and stored them in database
         
         else:
             logger.error(f"failed to create new Coder user {creds['username']}")
 
-            return False # failed to create the Coder user
+            return None # failed to create the Coder user
         
 
     def _add_user_to_db(self, user_name: str, phone_hash: str) -> bool:
@@ -144,15 +148,25 @@ class SMSWorker:
                 inbound_sms = inbound_sms_q.get(timeout=3)
                 sms_msg = MsgManager(inbound_sms["From"], inbound_sms["Body"], db_engine) 
                 if sms_msg.phone_num_valid:
+                    print("check user")
                     existing_user = sms_msg.check_for_matching_user()
+                    print("user checked")
                     if existing_user:
+                        print("existing user")
                         logger.info(f"user {existing_user} already exists")
                     else:
+                        print("verify pass phrase")
                         if sms_msg.verify_pass_phrase():
+                            print("after verify")
                             logger.info(f"user does not exist and a correct pass phrase was provided. create a new user")
-                            if sms_msg.create_user():
+                            if user_creds:= sms_msg.create_user():
                                 logger.info(f"successfully created new user")
-                            else:
+                                ts = TwilioSender()
+                                if ts.send_registration_sms(sms_msg.phone_num, sms_msg.phone_num_hash, user_creds["username"] + "@" + os.environ.get("CODER_EMAIL_DOM"), user_creds["pw"]):
+                                    logger.info(f"credentials sent for {user_creds['username']}")
+                                else:
+                                    logger.error(f"failed to send credentials to {user_creds['username']}")
+                            else: 
                                 logger.error(f"problem creating new user")
                 else:
                     logger.warning(f"invalid phone number received")         

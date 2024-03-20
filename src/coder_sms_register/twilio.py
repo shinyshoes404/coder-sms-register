@@ -17,7 +17,7 @@ class TwilioSender:
     def __init__(self):
         self.url = Config.twilio_url + "/" + os.environ.get("TWILIO_ACCOUNT_SID") + "/Messages.json"
         
-        basic_auth = os.environ.get("TWILIO_ACCOUNT_SID") + ":" + os.environ.get("TWILIO_AUTH_TOKEN")
+        basic_auth = os.environ.get("TWILIO_AUTH_SID") + ":" + os.environ.get("TWILIO_AUTH_TOKEN")
         basic_auth_bytes = basic_auth.encode("utf-8")
         base64_bytes = base64.b64encode(basic_auth_bytes)
         base64_auth = base64_bytes.decode("ascii")
@@ -26,7 +26,7 @@ class TwilioSender:
         self.from_phone = os.environ.get("FROM_NUM")
 
 
-    def send_registration_sms(self, phone_num: str, phone_num_hash: str, user_email: str, pw: str) -> tuple[bool, str]:
+    def send_registration_sms(self, phone_num: str, phone_num_hash: str, user_email: str, pw: str) -> bool:
         logger.info(f"attempting to send registration sms to {phone_num_hash}")
         body = dedent(f"""
             Here are your credentials for coder.handsonproduct.com
@@ -38,9 +38,9 @@ class TwilioSender:
 
         if not self.send_sms_with_retry(2, body, phone_num):
             logger.error(f"failed to send sub sms to {phone_num_hash}")
-            return False, body
+            return False
         
-        return True, body
+        return True
  
  
     def send_sms(self, body: str, phone_num: str) -> bool:
@@ -69,7 +69,7 @@ class TwilioSender:
             logger.error("twilio request to send sms failed status code: {0} content: {1}".format(resp.status_code, resp.content))
             return None
 
-        logger.info("sms message successfully sent to {0}".format(phone_num))
+        logger.info("sms message successfully sent")
         return True
 
 
@@ -89,7 +89,7 @@ class TwilioSender:
 
 class TwilioSignature:
     """Class used to verify inbound SMS message signatures from Twilio"""
-    
+
     def __init__(self, request_body, headers: dict):
         self.request_body = request_body
         self.headers = headers
