@@ -123,7 +123,7 @@ class TwilioSignature:
     def compare_signatures(self) -> bool:
         header_signature = self._get_header_sig()
         if not header_signature:
-            logger.warning("request signature does not match what is expected")
+            logger.warning("request header signature not present")
             return False
         
         if header_signature == self._create_signature():

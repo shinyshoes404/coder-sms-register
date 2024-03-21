@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
- traffic-man:
+ coder-sms-reg:
  # you can remove the dns section if you want the container to use the host dns by default, or you can edit these addresses to suite your needs
   dns: 
     - "192.168.1.2"

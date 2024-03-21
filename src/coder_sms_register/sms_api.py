@@ -2,17 +2,15 @@ from coder_sms_register.config import Config
 from flask import Flask, request, make_response
 from flask_cors import CORS
 import datetime, redis
-
 from coder_sms_register.twilio import TwilioSignature
 
-# Logging setup
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(Config.log_level)
-logger.addHandler(Config.file_handler)
-logger.addHandler(Config.stout_handler)
-
 sms_api = Flask(__name__)
+
+# Logging setup
+sms_api.logger.handlers.clear()
+sms_api.logger.setLevel(Config.log_level)
+sms_api.logger.addHandler(Config.file_handler)
+sms_api.logger.addHandler(Config.stout_handler)
 
 CORS(sms_api)
 
@@ -26,8 +24,8 @@ def _sms_msg_producer(msg: dict) -> bool:
     try:
         redis_conn.xadd(Config.redis_sms_stream_key, msg, "*")
     except Exception as e:
-        logger.error("problem publishing message to redis stream msg: {0}".format(msg))
-        logger.error(e)
+        sms_api.logger.error(f"problem publishing message to redis stream msg: {msg}")
+        sms_api.logger.error(e)
         return False
     
     return True
@@ -37,6 +35,7 @@ def _sms_msg_producer(msg: dict) -> bool:
 def inbound_sms():
     global redis_cons_grp_status
     if redis_cons_grp_status == "error":
+        sms_api.logger.error("redis error")
         resp = make_response("internal server error", 500)
         return(resp)
 
@@ -44,14 +43,18 @@ def inbound_sms():
     twilio_sig = TwilioSignature(request, req_headers)
 
     if not twilio_sig.compare_signatures():
+        sms_api.logger.warning("bad signature - not authorized")
         resp = make_response("not authorized", 401)
         return resp
     
     req_data = request.form.to_dict()
 
     if not _sms_msg_producer(req_data):
+        sms_api.logger.error("500 error - problem creating msg for redis")
         resp = make_response("internal server error", 500)
         return resp
+
+    sms_api.logger.info("returning success 200")
 
     resp = make_response("<Response></Response>", 200)
     resp.headers["Content-Type"] = "text/html"
