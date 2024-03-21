@@ -1,5 +1,5 @@
 # coder-sms-register
-Allow users to sign up on a Coder server and recieve a username and temporary password.
+Allow users to create credentials for a Coder server and recieve a username and temporary password via SMS.
 
 
 ## Setting Up Your Environment
