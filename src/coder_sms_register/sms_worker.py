@@ -49,16 +49,16 @@ class MsgManager:
 
     def verify_pass_phrase(self) -> bool:
         """A method to check for a valid pass phrase in the sms message"""
-        print("in verify")
+
         if self.msg_body.replace(" ", "").lower().rstrip(".").rstrip("!").rstrip("?") == os.environ.get("CODER_REG_PASS").replace(" ", "").lower():
             self.pass_verified = True
-            print("set pass verified")
+
             logger.info("pass phrase matches")            
             return True
                 
         self.pass_verified = False
-        print(f"verify failed {self.msg_body}")
-        print(f"env {os.environ.get('CODER_REG_PASS')}")
+        logger.info("pass phrase does not match")
+
         return False
     
     def check_for_matching_user(self) -> str:
@@ -148,16 +148,12 @@ class SMSWorker:
                 inbound_sms = inbound_sms_q.get(timeout=3)
                 sms_msg = MsgManager(inbound_sms["From"], inbound_sms["Body"], db_engine) 
                 if sms_msg.phone_num_valid:
-                    print("check user")
                     existing_user = sms_msg.check_for_matching_user()
-                    print("user checked")
+
                     if existing_user:
-                        print("existing user")
                         logger.info(f"user {existing_user} already exists")
                     else:
-                        print("verify pass phrase")
-                        if sms_msg.verify_pass_phrase():
-                            print("after verify")
+                        if sms_msg.verify_pass_phrase(): 
                             logger.info(f"user does not exist and a correct pass phrase was provided. create a new user")
                             if user_creds:= sms_msg.create_user():
                                 logger.info(f"successfully created new user")
