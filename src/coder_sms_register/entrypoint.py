@@ -23,7 +23,7 @@ def main():
 
     print("#########################################")
     print("###### STARTING CODER SMS REGISTER ######")
-    print("#########################################")
+    print("#########################################\n\n")
 
     # create the database if it doesn't already exist
     engine = db.create_engine('sqlite:///' + Config.db_path)

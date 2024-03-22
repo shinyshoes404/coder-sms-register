@@ -111,7 +111,7 @@ class TwilioSignature:
         return param_str
     
     def _create_signature(self) -> str:
-        key = bytes(os.environ.get("TWILIO_AUTH_TOKEN"), "UTF-8")
+        key = bytes(os.environ.get("TWILIO_ACCOUNT_TOKEN"), "UTF-8")
         contents = bytes(os.environ.get("TWILIO_WEBHOOK_URL") + self._create_param_str(), "UTF-8")
         hmac_obj = hmac.new(key, contents, hashlib.sha1)
         signature = hmac_obj.digest()
