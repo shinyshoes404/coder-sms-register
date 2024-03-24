@@ -2,6 +2,7 @@ from coder_sms_register.config import Config
 from coder_sms_register.models import metadata_obj
 from coder_sms_register.sms_listener import SMSListener
 from coder_sms_register.sms_worker import SMSWorker
+from coder_sms_register.user_worker import UserWorker
 import sqlalchemy as db
 from threading import Thread
 from queue import Queue
@@ -23,7 +24,7 @@ def main():
 
     print("#########################################")
     print("###### STARTING CODER SMS REGISTER ######")
-    print("#########################################")
+    print("#########################################\n\n")
 
     # create the database if it doesn't already exist
     engine = db.create_engine('sqlite:///' + Config.db_path)
@@ -42,9 +43,13 @@ def main():
     # thread to process incoming sms messages
     sms_proc_thread = Thread(target=SMSWorker.sms_worker, args=[kill_q, inbound_sms_q, engine])
 
+    # thread to remove users and workspaces from the coder server
+    user_cleanup = Thread(target=UserWorker.user_worker, args=[kill_q, engine])
+
     # start the threads
     sms_listener_thread.start()
     sms_proc_thread.start()
+    user_cleanup.start()
 
     # look for a keyboard interrupt (ctlr + c), so the app can be exited manually
     try:
@@ -59,6 +64,7 @@ def main():
     # collect all the threads before shutting down completely
     sms_listener_thread.join()
     sms_proc_thread.join()
+    user_cleanup.join()
 
 
 if __name__ == "__main__":
