@@ -94,6 +94,13 @@ __Before you get started, you need:__
  - Start the container with `docker-compose up -d`
 
 
+### Example architecture
+Below an example architecture for deploying coder-sms-register.  
+
+<img src="./docs/images/arch_diagram.jpg" width="45%"/>
+
+
+
 ## Developing
 
 ### Setting up your environment
